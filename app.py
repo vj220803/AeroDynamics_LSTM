@@ -92,6 +92,17 @@ def safe_predict(model, scaler, df: pd.DataFrame):
 
     return max(0.0, min(1.0, prob))
 
+def get_maintenance_recommendation(prob: float) -> str:
+    """Returns maintenance actionable recommendation based on failure probability."""
+    if prob >= 0.8:
+        return "CRITICAL: Immediate engine grounding and component overhaul recommended within 24 hours."
+    elif prob >= 0.5:
+        return "WARNING: Schedule urgent maintenance inspection before the next flight cycle."
+    elif prob >= 0.3:
+        return "ADVISORY: Monitor sensor metrics closely during routine daily checks."
+    else:
+        return "OPTIMAL: All subsystem parameters nominal. Standard service interval applies."
+
 # --- Load model & scaler ---
 model, scaler, load_error = load_assets()
 
@@ -141,8 +152,24 @@ if uploaded_file:
         st.stop()
 
     label = "Failure soon" if prob >= 0.5 else "Healthy"
-    st.metric("Failure Probability", f"{prob:.2%}")
+
+    # --- Engine Health Summary Card & Alert Badge ---
+    st.markdown("### 🛠️ Engine Health Summary")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Failure Probability", f"{prob:.2%}", delta=f"{(prob - 0.5):+.2%}" if prob >= 0.5 else "Normal", delta_color="inverse")
+    with col2:
+        badge_color = "red" if prob >= 0.5 else "green"
+        st.metric("Operational Status", label)
+    with col3:
+        alert_status = "CRITICAL ALERT" if prob >= 0.5 else "NOMINAL"
+        st.metric("Threshold Alert", alert_status)
+
     if label == "Failure soon":
-        st.error("⚠️ Engine at risk of failure soon!")
+        st.error("🚨 CRITICAL ALERT BADGE: Engine exceeds degradation threshold! Immediate inspection required.")
     else:
-        st.success("✅ Engine is healthy.")
+        st.success("✅ NOMINAL BADGE: Engine health verified within safe operational parameters.")
+
+    # --- Maintenance Recommendation Card ---
+    recommendation = get_maintenance_recommendation(prob)
+    st.info(f"📋 **Maintenance Recommendation Card**: {recommendation}")
