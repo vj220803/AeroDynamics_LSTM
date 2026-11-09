@@ -144,5 +144,7 @@ if uploaded_file:
     st.metric("Failure Probability", f"{prob:.2%}")
     if label == "Failure soon":
         st.error("⚠️ Engine at risk of failure soon!")
+        if prob > 0.50:
+            st.warning("🔍 Urgent inspection recommendation: Inspect turbine blades immediately.")
     else:
         st.success("✅ Engine is healthy.")
